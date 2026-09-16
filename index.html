@@ -322,6 +322,7 @@ tr:hover .rate-dim { color:var(--muted); }
     -webkit-transform:translate3d(0,0,0);
   }
   .mobile-bottom-bar:active { background:var(--sidebar-dark); }
+  .mobile-bottom-bar.login-hidden { display:none !important; }
 
   /* ── Store picker modal ── */
   .sp-modal-overlay {
@@ -814,6 +815,7 @@ function doLogin() {
   const input = document.getElementById('loginPass').value;
   if (input === _PL_PASS) {
     document.getElementById('loginScreen').style.display = 'none';
+    var bb = document.querySelector('.mobile-bottom-bar'); if(bb) bb.classList.remove('login-hidden');
     sessionStorage.setItem('pl_auth', '1');
   } else {
     document.getElementById('loginError').textContent = 'パスワードが正しくありません';
@@ -825,6 +827,7 @@ function doLogin() {
 // セッション中は再ログイン不要
 if (sessionStorage.getItem('pl_auth') === '1') {
   document.getElementById('loginScreen').style.display = 'none';
+  var bb = document.querySelector('.mobile-bottom-bar'); if(bb) bb.classList.remove('login-hidden');
 }
 </script>
 
@@ -6389,7 +6392,7 @@ function updateTaskBadge() {
 </div>
 
 <!-- MOBILE BOTTOM BAR -->
-<div class="mobile-bottom-bar" onclick="openStorePicker()">
+<div class="mobile-bottom-bar login-hidden" onclick="openStorePicker()">
   🏢 店舗を切り替える
 </div>
 
