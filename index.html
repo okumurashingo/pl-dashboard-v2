@@ -355,8 +355,8 @@ tr:hover .rate-dim { color:var(--muted); }
   .sp-item-badge.neg { color:var(--red); }
 
   /* ── Main content full width — body scrolls, not .main ── */
-  .app { height:auto !important; min-height:auto !important; overflow:visible !important; }
-  .main { width:100% !important; padding-bottom:70px !important; overflow:visible !important; height:auto !important; flex:none !important; }
+  .app { height:auto !important; min-height:auto !important; overflow-x:hidden !important; overflow-y:visible !important; max-width:100vw !important; }
+  .main { width:100% !important; max-width:100vw !important; padding-bottom:70px !important; overflow-x:hidden !important; overflow-y:visible !important; height:auto !important; flex:none !important; box-sizing:border-box !important; }
 
   /* ── Topbar: simplified + FIXED on mobile ── */
   .topbar { padding:0 14px !important; gap:10px !important; position:fixed !important; left:0; right:0; top:0; }
@@ -442,8 +442,10 @@ tr:hover .rate-dim { color:var(--muted); }
   .entity-name { margin-bottom:4px !important; }
 
   /* ── Mobile: prevent horizontal overflow ── */
-  html, body { overflow-x:hidden !important; max-width:100vw !important; }
-  .content { box-sizing:border-box !important; overflow-x:hidden !important; max-width:100vw !important; }
+  html, body { overflow-x:hidden !important; max-width:100vw !important; width:100% !important; }
+  .content { box-sizing:border-box !important; overflow-x:hidden !important; max-width:100vw !important; width:100% !important; }
+  .subheader { box-sizing:border-box !important; max-width:100vw !important; }
+  .topbar { box-sizing:border-box !important; max-width:100vw !important; }
 
   /* ── KPI small cards: prevent overflow, compact text ── */
   .kpi-small {
@@ -757,6 +759,7 @@ button:focus-visible,[onclick]:focus-visible { outline:2px solid var(--teal); ou
 @media (max-width:1500px) { .cp-metrics { grid-template-columns:repeat(3,minmax(0,1fr)); } .cp-value { font-size:26px; } }
 @media (max-width:1100px) { .cp-two { grid-template-columns:1fr; } .cp-productivity-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .cp-editor-row { grid-template-columns:repeat(3,minmax(0,1fr)); } .cp-hero { padding:26px; grid-template-columns:minmax(0,1fr) 185px; } .cp-hero h2 { font-size:23px; } }
 @media (max-width:768px) {
+ .cp-shell { max-width:100% !important; box-sizing:border-box !important; overflow-x:hidden !important; }
  .cp-nav { flex-wrap:nowrap; overflow-x:auto; margin-bottom:16px; padding-bottom:4px; padding-top:2px; }
  .cp-nav button { flex-shrink:0; font-size:11px; padding:9px 11px; }
  .cp-hero { grid-template-columns:1fr; padding:22px; gap:18px; border-radius:16px; }
