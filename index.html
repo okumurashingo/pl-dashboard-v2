@@ -2992,7 +2992,7 @@ function bulkCopyPrevMonth() {
   if (curIdx <= 0) { notif('⚠️ 最初の月（10月）のため前月がありません'); return; }
   const prevMonth = fiscalMonths[curIdx - 1];
 
-  if (!confirm(prevMonth + ' → ' + curMonth + '\n全店舗の固定費（人件費・経費・期首棚卸・業者構成）を一括コピーしますか？\n\n※ 売上金額・仕入金額・ヘルプ調整はコピーされません\n※ 業者名の構成のみコピー（既存金額は保持）')) return;
+  if (!confirm(prevMonth + ' → ' + curMonth + '\n全店舗の固定費（人件費・経費・期首棚卸・業者構成・メモ）を一括コピーしますか？\n\n※ 売上金額・仕入金額・ヘルプ調整はコピーされません\n※ 業者名の構成のみコピー（既存金額は保持）')) return;
 
   // 編集中の場合は先に保存
   if (state.editMode) {
@@ -3020,6 +3020,9 @@ function bulkCopyPrevMonth() {
     // 期首棚卸 = 前月の期末
     cur.invOpen = prev.invClose || 0;
 
+    // メモをコピー
+    if (prev.memo) cur.memo = prev.memo;
+
     // 業者名構成をコピー（既存金額は保持、新規はゼロ）
     if (prev.vendors && prev.vendors.length) {
       const existing = {};
@@ -3044,7 +3047,7 @@ function bulkCopyPrevMonth() {
   clearAllCache();
   render();
   autoSave();
-  notif('✅ ' + count + '店舗の固定費を ' + prevMonth + ' → ' + curMonth + ' にコピーしました');
+  notif('✅ ' + count + '店舗の固定費・メモを ' + prevMonth + ' → ' + curMonth + ' にコピーしました');
 }
 
 function propagateMonth(entityId, mode) {
