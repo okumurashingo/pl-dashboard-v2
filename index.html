@@ -6476,6 +6476,18 @@ function cpFocus(entities,m){
  const losses=stores.filter(x=>x.m.count&&x.m.profit<0);
  return `<section class="cp-panel"><div class="cp-eyebrow">MANAGEMENT FOCUS</div><h3>今月の確認ポイント</h3><p>入力済み実績から、確認する店舗を絞り込みます。</p><div class="cp-focus-item"><b>売上予算未達</b><strong>${issues.length}<small>店舗</small></strong></div>${issues.slice(0,3).map(x=>`<button class="cp-alert" data-entity="${cpEsc(x.e.id)}" onclick="cockpitSelect(this.dataset.entity)"><span>${cpEsc(x.e.name)}</span><b>${cpNum(x.m.budgetRate,1)}% →</b></button>`).join('')}<div class="cp-focus-item"><b>赤字店舗</b><strong>${losses.length}<small>店舗</small></strong></div><div class="cp-footnote">労働時間入力：${m.hourCoverage} / ${m.stores} 店舗<br>客数入力：${m.customerCoverage} / ${m.stores} 店舗<br>店舗数の分母は今月に実績のある店舗です。</div></section>`;
 }
+function cpStoreFocus(entity,m){
+ const c=calcEntity(entity,state.activeMonth);
+ if(!c||!m.count)return `<section class="cp-panel"><div class="cp-eyebrow">STORE PERFORMANCE</div><h3>経営指標</h3><p>この月のデータがありません。</p></section>`;
+ const nr=c.netRevenue||1;
+ const rates=[['原価率',c.cogs/nr*100],['人件費率',c.laborTotal/nr*100],['FL比率',m.fl],['粗利率',c.grossRate],['営業利益率',c.profitRate]];
+ return `<section class="cp-panel"><div class="cp-eyebrow">COST STRUCTURE</div><h3>コスト構成</h3><p>純売上高に対する各コストの割合</p>${rates.map(([label,val])=>`<div class="cp-focus-item"><b>${label}</b><strong>${val!=null&&Number.isFinite(val)?cpNum(val,1):'—'}<small>%</small></strong></div>`).join('')}<div class="cp-footnote">${m.budgetRate!=null?`売上予算達成率：${cpNum(m.budgetRate,1)}%`:'売上予算：未設定'}<br>労働時間：${m.hours?cpNum(m.hours)+'時間':'未入力'}<br>客数：${m.guests?cpNum(m.guests)+'人':'未入力'}</div></section>`;
+}
+function cpStoreMonthly(entity){
+ const end=MONTHS.indexOf(state.activeMonth),months=MONTHS.slice(Math.max(0,end-5),end+1);
+ const data=months.map(m=>({month:m,...cpMetrics([entity],m)}));
+ return `<section class="cp-panel"><div class="cp-panel-heading"><div><div class="cp-eyebrow">MONTHLY TREND</div><h3>月次推移</h3></div></div><p>最大6か月の主要KPIを比較</p><div class="cp-table-scroll"><table class="cp-table"><thead><tr><th>月</th><th>純売上高</th><th>利益額</th><th>客数</th><th>客単価</th><th>人時売上</th><th>FL比率</th></tr></thead><tbody>${data.map(d=>`<tr><td><b>${d.month}</b></td><td>${d.count?cpNum(d.netRevenue):'—'}</td><td class="${d.profit<0?'cp-bad':''}">${d.count?cpNum(d.profit):'—'}</td><td>${cpNum(d.guests)}</td><td>${cpNum(d.unit)}</td><td>${cpNum(d.hourly)}</td><td>${d.fl==null?'—':cpNum(d.fl,1)+'%'}</td></tr>`).join('')}</tbody></table></div></section>`;
+}
 const cpTemplates=()=>[
  {name:'月次離職率',unit:'%',actual:null,target:null,direction:'lower',note:'当月退職者数 ÷ 月初在籍者数 × 100。雇用区分・集計対象を揃えて入力。'},
  {name:'90日定着率',unit:'%',actual:null,target:null,direction:'higher',note:'入社90日を迎えた対象者のうち在籍している人数 ÷ 対象者数 × 100。'},
@@ -6503,22 +6515,26 @@ function renderCockpit(){
  const previous=idx>0?cpMetrics(entities,MONTHS[idx-1]):null;
  const prev=(key)=>previous?.count?previous[key]:null;
  const entity=state.entities.find(e=>e.id===state.activeId);
- const metrics=cpCard('純売上高',m.count?m.netRevenue:null,'円','選択範囲の合計・税抜',cpChange(m.count?m.netRevenue:null,prev('netRevenue')))
- +cpCard('利益額',m.count?m.profit:null,'円','既存PLと同じ計算・部門合計',cpChange(m.count?m.profit:null,prev('profit')))
- +cpCard('客数',m.guests,'人',`客数入力済み ${m.customerCoverage} 店舗`,cpChange(m.guests,prev('guests')))
- +cpCard('客単価',m.unit,'円','客数入力店舗の税込売上 ÷ 客数',cpChange(m.unit,prev('unit')))
- +cpCard('人時売上',m.hourly,'円/時',`労働時間入力済み ${m.hourCoverage} 店舗・税抜`,cpChange(m.hourly,prev('hourly')))
+ const isOverview=entity&&entity.type==='overview';
+ const metrics=cpCard('純売上高',m.count?m.netRevenue:null,'円',isOverview?'選択範囲の合計・税抜':'税抜売上高',cpChange(m.count?m.netRevenue:null,prev('netRevenue')))
+ +cpCard('利益額',m.count?m.profit:null,'円',isOverview?'既存PLと同じ計算・部門合計':'売上−原価−人件費−経費',cpChange(m.count?m.profit:null,prev('profit')))
+ +cpCard('客数',m.guests,'人',isOverview?`客数入力済み ${m.customerCoverage} 店舗`:'この月の来客数',cpChange(m.guests,prev('guests')))
+ +cpCard('客単価',m.unit,'円',isOverview?'客数入力店舗の税込売上 ÷ 客数':'税込売上 ÷ 客数',cpChange(m.unit,prev('unit')))
+ +cpCard('人時売上',m.hourly,'円/時',isOverview?`労働時間入力済み ${m.hourCoverage} 店舗・税抜`:'純売上高 ÷ 労働時間',cpChange(m.hourly,prev('hourly')))
  +cpCard('FL比率',m.fl,'%','(原価＋人件費) ÷ 純売上高',cpChange(m.fl,prev('fl'),true));
- const hero=`<section class="cp-hero"><div><div class="cp-eyebrow">TODAY'S MANAGEMENT FOCUS</div><p>${cpEsc(entity?.name)} · ${cpEsc(state.activeMonth)}実績</p><div class="cp-hero-note">${m.count?`${m.count}店舗・部門の実績を集計。売上と生産性を、同じ月で確認できます。`:'この月の実績はまだ入力されていません。月の切替、またはPL画面から入力してください。'}</div></div><div class="cp-hero-stat"><span>売上予算達成率</span><strong>${cpNum(m.budgetRate,1)}<small>%</small></strong><span>実績・予算あり ${m.budgetCount} 店舗</span><div class="cp-hero-budget">${m.budgetRate==null?'予算未設定':`<span class="cp-pill ${m.budgetRate>=100?'cp-good':'cp-bad'}">${m.budgetRate>=100?'達成':'未達成'}</span>`}</div><div class="cp-track"><i style="width:${m.budgetRate==null?0:Math.min(100,Math.max(0,m.budgetRate))}%;background:var(--budget-${m.budgetRate>=100?'good':'bad'})"></i></div></div></section>`;
+ const heroNote=isOverview?(m.count?`${m.count}店舗・部門の実績を集計。売上と生産性を、同じ月で確認できます。`:'この月の実績はまだ入力されていません。月の切替、またはPL画面から入力してください。'):(m.count?'この店舗の売上と生産性を確認できます。':'この月の実績はまだ入力されていません。PL画面から入力してください。');
+ const budgetLabel=isOverview?`実績・予算あり ${m.budgetCount} 店舗`:(m.budgetRate!=null?`実績 ${cpNum(m.budgetActual)}円 / 予算 ${cpNum(m.budget)}円`:'');
+ const hero=`<section class="cp-hero"><div><div class="cp-eyebrow">TODAY'S MANAGEMENT FOCUS</div><p>${cpEsc(entity?.name)} · ${cpEsc(state.activeMonth)}実績</p><div class="cp-hero-note">${heroNote}</div></div><div class="cp-hero-stat"><span>売上予算達成率</span><strong>${cpNum(m.budgetRate,1)}<small>%</small></strong><span>${budgetLabel}</span><div class="cp-hero-budget">${m.budgetRate==null?'予算未設定':`<span class="cp-pill ${m.budgetRate>=100?'cp-good':'cp-bad'}">${m.budgetRate>=100?'達成':'未達成'}</span>`}</div><div class="cp-track"><i style="width:${m.budgetRate==null?0:Math.min(100,Math.max(0,m.budgetRate))}%;background:var(--budget-${m.budgetRate>=100?'good':'bad'})"></i></div></div></section>`;
  let body;
  if(cockpitMode==='custom')body=cpCustomView();
  else if(cockpitMode==='productivity')body=`<div class="cp-section-title"><div class="cp-eyebrow">PRODUCTIVITY & PERFORMANCE</div><h2>売上を支える、現場の生産性。</h2><p>人時指標は労働時間のある店舗だけで分子・分母を揃えて算出します。本部は対象外です。</p></div><div class="cp-productivity-grid">${cpCard('人時売上',m.hourly,'円/時','純売上高 ÷ 総労働時間')}${cpCard('人時粗利益',m.hourlyGross,'円/時','粗利益 ÷ 総労働時間')}${cpCard('時間当たり人件費',m.hourlyLabor,'円/時','人件費合計 ÷ 総労働時間')}${cpCard('集計対象の労働時間',m.hourCoverage?m.hours:null,'時間',`${m.hourCoverage} / ${m.stores} 店舗に入力あり`)}</div>${cpTable(entities)}`;
- else body=`${hero}<div class="cp-metrics">${metrics}</div><div class="cp-two">${cpTrend(entities)}${cpFocus(entities,m)}</div>${cpTable(entities)}`;
+ else if(isOverview)body=`${hero}<div class="cp-metrics">${metrics}</div><div class="cp-two">${cpTrend(entities)}${cpFocus(entities,m)}</div>${cpTable(entities)}`;
+ else body=`${hero}<div class="cp-metrics">${metrics}</div><div class="cp-two">${cpTrend(entities)}${cpStoreFocus(entity,m)}</div>${cpStoreMonthly(entity)}`;
  document.getElementById('mainContent').innerHTML=`<div class="cp-shell">${cpNav()}${body}<details class="cp-definitions"><summary>KPIの集計ルール</summary><p>売上・利益・FL比率：選択した店舗または全部門のうち、当月に売上・客数・労働時間・仕入・経費などの非ゼロの実績が入力されている部門を集計。本部・内部売上を含む場合があり、連結消去後の数値ではありません。客数・客単価：店舗のみ。客数がある店舗の売上と客数で算出。人時指標：労働時間がある店舗のみ。売上予算：実績と正の予算がある店舗のみ。比較対象の店舗数が月ごとに異なる場合があります。前月が期首より前の場合は比較しません。</p></details></div>`;
  document.getElementById('editToggleWrap').innerHTML='';
 }
 const cpOriginalRender=window.render;
-window.render=function(){cpOriginalRender();var activeEntity=state.entities.find(function(e){return e.id===state.activeId;});var isOverview=activeEntity&&activeEntity.type==='overview';if(!state.editMode && cockpitMode!=='pl' && isOverview)renderCockpit();else if(!document.querySelector('#mainContent > .cp-shell > .cp-nav'))document.getElementById('mainContent').insertAdjacentHTML('afterbegin','<div class="cp-shell" style="margin-bottom:0">'+cpNav()+'</div>');adjustMobileFixedHeaders();};
+window.render=function(){cpOriginalRender();if(!state.editMode && cockpitMode!=='pl')renderCockpit();else if(!document.querySelector('#mainContent > .cp-shell > .cp-nav'))document.getElementById('mainContent').insertAdjacentHTML('afterbegin','<div class="cp-shell" style="margin-bottom:0">'+cpNav()+'</div>');adjustMobileFixedHeaders();};
 function adjustMobileFixedHeaders(){if(window.innerWidth>768)return;requestAnimationFrame(function(){var tb=document.querySelector('.topbar');var sh=document.querySelector('.subheader');var ct=document.querySelector('.content');if(!tb||!sh||!ct)return;var tbH=tb.getBoundingClientRect().height;sh.style.setProperty('top',tbH+'px','important');var gap=sh.getBoundingClientRect().bottom;ct.style.setProperty('padding-top',Math.max(14,gap+14)+'px','important');});}
 window.addEventListener('resize',adjustMobileFixedHeaders);
 const cpOriginalSidebar=renderSidebar;
