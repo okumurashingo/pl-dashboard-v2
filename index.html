@@ -6454,7 +6454,7 @@ function cockpitOpen(mode){
 }
 function cockpitSelect(id){setActive(id);}
 function cpNav(){
- return `<div class="cp-nav" aria-label="分析画面">${[['summary','経営サマリー'],['pl','PL・データ管理']].map(([k,n])=>`<button class="${cockpitMode===k?'selected':''}" onclick="cockpitOpen('${k}')">${n}</button>`).join('')}</div>`;
+ return `<div class="cp-nav" aria-label="分析画面">${[['pl','PL・データ管理'],['summary','経営サマリー']].map(([k,n])=>`<button class="${cockpitMode===k?'selected':''}" onclick="cockpitOpen('${k}')">${n}</button>`).join('')}</div>`;
 }
 function cpTrend(entities){
  const end=MONTHS.indexOf(state.activeMonth), months=MONTHS.slice(Math.max(0,end-5),end+1);
