@@ -126,7 +126,7 @@ body { font-family:'Noto Sans JP',sans-serif; background:var(--bg); color:var(--
 .sidebar-add:hover { background:rgba(255,255,255,.06); }
 
 /* ══ MAIN ══ */
-.main { flex:1; overflow-y:auto; display:flex; flex-direction:column; }
+.main { flex:1; overflow-y:auto; display:flex; flex-direction:column; isolation:isolate; }
 .main::-webkit-scrollbar { width:5px; }
 .main::-webkit-scrollbar-thumb { background:var(--border2); border-radius:3px; }
 
@@ -135,7 +135,7 @@ body { font-family:'Noto Sans JP',sans-serif; background:var(--bg); color:var(--
   background:#ffffff; border-bottom:1px solid var(--border);
   padding:9px 22px; display:flex; align-items:center; gap:12px;
   position:-webkit-sticky; position:sticky; top:0; z-index:200; box-shadow:var(--shadow);
-  will-change:transform; -webkit-transform:translateZ(0); transform:translateZ(0);
+  isolation:isolate; -webkit-backface-visibility:hidden; backface-visibility:hidden;
 }
 .entity-name { font-size:15px; font-weight:800; color:var(--text); }
 .entity-badge {
