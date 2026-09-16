@@ -6411,7 +6411,7 @@ function updateTaskBadge() {
 </div>
 <script id="management-cockpit">
 // Management cockpit: additive views over the existing PL data.
-let cockpitMode = 'summary';
+let cockpitMode = 'pl';
 let cockpitSort = 'profit';
 const cpEsc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const cpNum = (v, digits=0) => v == null || !Number.isFinite(v) ? '—' : v.toLocaleString('ja-JP',{maximumFractionDigits:digits,minimumFractionDigits:digits});
