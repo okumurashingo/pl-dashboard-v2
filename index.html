@@ -2286,6 +2286,16 @@ function renderDetail(entity) {
     return `<tr class="${cls}"><td>${label}</td><td class="num ${vc}">${fmt(val)}</td><td class="num budget-col">${budgetStr}</td><td class="num diff-col ${diffCls}">${diffStr}</td><td class="${rateCls}">${rateStr}</td></tr>`;
   };
 
+  // 予算データ取得（PL行ビルダーの前に移動）
+  const bd = (entity.data[state.activeMonth]||{}).budgetDetail || {};
+  const bRev = bd.revenue ? Math.round(bd.revenue / 1.1) : ((entity.data[state.activeMonth]||{}).budgetRevenue ? Math.round((entity.data[state.activeMonth]||{}).budgetRevenue / 1.1) : 0);
+  const bCogs = bd.cogs || 0;
+  const bGP = bd.grossProfit || 0;
+  const bLabor = bd.laborTotal || 0;
+  const bProfit = bd.profit || (entity.data[state.activeMonth]||{}).budgetProfit || 0;
+  const bCust = (entity.data[state.activeMonth]||{}).budgetCustomerCount || 0;
+  const bGPCalc = bGP > 0 ? bGP : (bRev > 0 ? bRev - Math.round(c.cogs / c.netRevenue * bRev) : 0);
+
   let plRows='';
   plRows+=R('売上',c.revenue,{noRate:true,budget:bRev>0?Math.round(bRev*1.1):null});
   plRows+=R('純売上高',c.netRevenue,{tot:true,rate:100,budget:bRev>0?bRev:null});
@@ -2395,15 +2405,6 @@ function renderDetail(entity) {
       + '<div class="hbar-track"><div class="hbar-fill" style="width:' + (i.v/maxC*100) + '%;background:' + i.color + '">' + inner + '</div></div></div>';
   }).join('');
 
-  // 予算データ取得
-  const bd = (entity.data[state.activeMonth]||{}).budgetDetail || {};
-  const bRev = bd.revenue ? Math.round(bd.revenue / 1.1) : ((entity.data[state.activeMonth]||{}).budgetRevenue ? Math.round((entity.data[state.activeMonth]||{}).budgetRevenue / 1.1) : 0);
-  const bCogs = bd.cogs || 0;
-  const bGP = bd.grossProfit || 0;
-  const bLabor = bd.laborTotal || 0;
-  const bProfit = bd.profit || (entity.data[state.activeMonth]||{}).budgetProfit || 0;
-  const bCust = (entity.data[state.activeMonth]||{}).budgetCustomerCount || 0;
-
   // ── 予算達成度ゲージ生成 ──
   const gaugeCard = (label, actual, budget, icon, col, colLight, isExpenseGauge) => {
     if (!budget || budget <= 0) return '';
@@ -2433,8 +2434,6 @@ function renderDetail(entity) {
       + '</div></div>';
   };
 
-  // 粗利予算 = 売上予算 - 原価予算（bGPがあればそれ、なければ売上予算から原価率で推定）
-  const bGPCalc = bGP > 0 ? bGP : (bRev > 0 ? bRev - Math.round(c.cogs / c.netRevenue * bRev) : 0);
 
   const hasBudget = bRev > 0 || bGPCalc > 0 || bCust > 0 || bLabor > 0 || bProfit > 0;
   const budgetSection = hasBudget
