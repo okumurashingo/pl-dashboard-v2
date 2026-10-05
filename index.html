@@ -1172,6 +1172,9 @@ if (sessionStorage.getItem('pl_auth') === '1') {
       <button id="csvTab5" onclick="switchCsvTab(5)" style="flex: 1 1 0%; padding: 8px 6px; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: &quot;Noto Sans JP&quot;, sans-serif; background: transparent; color: var(--muted); transition: 0.15s; line-height: 1.5;">
         👷 労働時間<br><span style="font-weight:400;font-size:10px">労働時間帳票XLS</span>
       </button>
+      <button id="csvTab6" onclick="switchCsvTab(6)" style="flex: 1 1 0%; padding: 8px 6px; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: &quot;Noto Sans JP&quot;, sans-serif; background: transparent; color: var(--muted); transition: 0.15s; line-height: 1.5;">
+        💰 月次予算<br><span style="font-weight:400;font-size:10px">月次予算CSV/XLS</span>
+      </button>
     </div>
 
     <!-- ── タブ1: 仕入先専用 ── -->
@@ -1323,6 +1326,45 @@ if (sessionStorage.getItem('pl_auth') === '1') {
       <div class="modal-btns">
         <button class="btn" onclick="closeCsvModal()">キャンセル</button>
         <button class="btn btn-primary" id="laborExecBtn" onclick="execLaborImport()" style="opacity: 1;">取込実行</button>
+      </div>
+    </div>
+
+    <!-- ── タブ6: 月次予算CSV ── -->
+    <div id="csvPane6" style="display: none;">
+      <div style="background:#fff;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:var(--text2);line-height:1.9">
+        <b style="color:#b45309">💰 月次予算 取込</b><br>
+        会計ソフトの<b>月次予算データ（CSV / XLS）</b>をここにドロップ<br>
+        <span style="color:var(--muted)">
+          ・列: 予算年, 予算月, 店舗コード, 科目コード, 勘定科目コード, 金額<br>
+          ・CSVはShift-JIS対応（自動判定）<br>
+          ・売上・原価・人件費・経費・利益の予算を取り込み、PLテーブルで予算対比を表示
+        </span>
+      </div>
+      <div id="budgetDropZone2" style="border:2px dashed var(--border);border-radius:8px;padding:28px;text-align:center;cursor:pointer;background:#fafafa;transition:all .15s"
+        onclick="document.getElementById('budgetFileInput2').click()"
+        ondragover="event.preventDefault();this.style.borderColor='#f59e0b';this.style.background='#fffbeb'"
+        ondragleave="this.style.borderColor='var(--border)';this.style.background='#fafafa'"
+        ondrop="handleBudgetDrop2(event)">
+        <div style="font-size:28px;margin-bottom:4px">💰</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text2)">クリック or ドラッグ＆ドロップ</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:3px">月次予算ファイル（CSV / XLS / XLSX）を選択</div>
+      </div>
+      <input type="file" id="budgetFileInput2" accept=".csv,.xls,.xlsx" style="display:none" onchange="handleBudgetFile(this.files[0])">
+      <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;font-weight:700;color:var(--text2)">取込モード:</span>
+        <select id="budgetMode2" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:'Noto Sans JP',sans-serif">
+          <option value="budget">📊 当年予算として取込</option>
+          <option value="prevYear">📅 前年実績として取込</option>
+        </select>
+      </div>
+      <div id="budgetPreview" style="display:none;margin-top:10px">
+        <div id="budgetPreviewTitle" style="font-size:12px;font-weight:700;margin-bottom:6px"></div>
+        <div id="budgetPreviewList" style="border:1px solid var(--border);border-radius:7px;max-height:220px;overflow-y:auto;font-size:11px"></div>
+      </div>
+      <div id="budgetError" style="color:#dc2626;font-size:11px;margin-top:4px"></div>
+      <div class="modal-btns" style="margin-top:12px">
+        <button class="btn" onclick="closeCsvModal()">キャンセル</button>
+        <button class="btn btn-primary" id="budgetExecBtn" onclick="execBudgetImport()" disabled style="opacity:.5">予算取込実行</button>
       </div>
     </div>
   </div>
@@ -2292,6 +2334,12 @@ function renderDetail(entity) {
   const bCogs = bd.cogs || 0;
   const bGP = bd.grossProfit || 0;
   const bLabor = bd.laborTotal || 0;
+  const bLaborStaff = bd.laborStaff || 0;
+  const bLaborAP = bd.laborAP || 0;
+  const bLaborWelfare = bd.laborWelfare || 0;
+  const bHelpAdj = bd.helpAdj || 0;
+  const bTimee = bd.timee || 0;
+  const bRent = bd.rent || 0;
   const bProfit = bd.profit || (entity.data[state.activeMonth]||{}).budgetProfit || 0;
   const bCust = (entity.data[state.activeMonth]||{}).budgetCustomerCount || 0;
   const bGPCalc = bGP > 0 ? bGP : (bRev > 0 ? bRev - Math.round(c.cogs / c.netRevenue * bRev) : 0);
@@ -2306,10 +2354,11 @@ function renderDetail(entity) {
   plRows+=R('原価合計',c.cogs,{tot:true,rate:c.cogs/nr*100,budget:bCogs>0?bCogs:null,isExpense:true});
   plRows+=R('粗利益',c.grossProfit,{tot:true,rate:c.grossRate,budget:bGPCalc>0?bGPCalc:null});
   plRows+=`<tr class="pl-sec"><td colspan="5">▶ 人件費</td></tr>`;
-  plRows+=R('社員人件費',c.laborStaff,{ind:true}); plRows+=R('法定福利費',c.laborWelfare,{ind:true});
-  plRows+=R('人件費（AP）',c.laborAP,{ind:true});
-  if(c.helpAdj)plRows+=R('ヘルプ調整',c.helpAdj,{ind:true});
-  if(c.timee)plRows+=R('タイミー',c.timee,{ind:true});
+  plRows+=R('社員人件費',c.laborStaff,{ind:true,budget:bLaborStaff>0?bLaborStaff:null,isExpense:true});
+  plRows+=R('法定福利費',c.laborWelfare,{ind:true,budget:bLaborWelfare>0?bLaborWelfare:null,isExpense:true});
+  plRows+=R('人件費（AP）',c.laborAP,{ind:true,budget:bLaborAP>0?bLaborAP:null,isExpense:true});
+  if(c.helpAdj||bHelpAdj)plRows+=R('ヘルプ調整',c.helpAdj,{ind:true,budget:bHelpAdj>0?bHelpAdj:null,isExpense:true});
+  if(c.timee||bTimee)plRows+=R('タイミー',c.timee,{ind:true,budget:bTimee>0?bTimee:null,isExpense:true});
   plRows+=R('人件費合計',c.laborTotal,{tot:true,rate:c.laborRate,budget:bLabor>0?bLabor:null,isExpense:true});
   plRows+=`<tr class="pl-sec"><td colspan="5">▶ 経費</td></tr>`;
   OPEX_KEYS.forEach(([k,lbl])=>{
@@ -2340,7 +2389,7 @@ function renderDetail(entity) {
     } else if(k==='lease' && entity.type !== 'hq') {
       // 店舗・居酒屋はリース非表示（PLテーブル）
     } else {
-      if(c[k]) plRows+=R(lbl,c[k],{ind:true});
+      if(c[k]) plRows+=R(lbl,c[k],{ind:true,budget:k==='rent'&&bRent>0?bRent:null,isExpense:true});
     }
   });
   plRows+=R('一般管理費合計',c.opex,{tot:true,rate:c.opex/nr*100,isExpense:true});
@@ -3726,8 +3775,8 @@ function closeCsvModal() {
 }
 
 function switchCsvTab(n) {
-  var tabs = ['csvTab1','csvTab2','csvTab3','csvTab4','csvTab5'];
-  var panes = ['csvPane1','csvPane2','csvPane3','csvPane4','csvPane5'];
+  var tabs = ['csvTab1','csvTab2','csvTab3','csvTab4','csvTab5','csvTab6'];
+  var panes = ['csvPane1','csvPane2','csvPane3','csvPane4','csvPane5','csvPane6'];
   for (var i = 0; i < tabs.length; i++) {
     var t = document.getElementById(tabs[i]);
     var p = document.getElementById(panes[i]);
@@ -4521,11 +4570,7 @@ function openMakasetenetModal() {
 
   const html = '<div class="modal-bg show" id="mksnModal">'
     + '<div class="modal" style="width:620px;max-width:95vw">'
-    + '<h2>🌐 まかせてネット データ取込</h2>'
-    + '<div style="display:flex;gap:4px;border-bottom:2px solid var(--border);margin-bottom:12px">'
-    + '<button id="mksnTab1" style="' + activeTab + '" onclick="switchMksnTab(1)">📊 売上CSV（予算進捗状況表）</button>'
-    + '<button id="mksnTab2" style="' + tabStyle + '" onclick="switchMksnTab(2)">💰 月次予算XLS</button></div>'
-    // ── Tab 1: 売上CSV ──
+    + '<h2>🌐 まかせてネット 売上CSV取込</h2>'
     + '<div id="mksnPane1">'
     + '<div style="background:#fff;border:1px solid var(--teal-pale2);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:var(--text2);line-height:1.9">'
     + '<b style="color:var(--teal-dark)">📌 使い方</b><br>'
@@ -4548,35 +4593,6 @@ function openMakasetenetModal() {
     + '<div class="modal-btns" style="margin-top:12px">'
     + '<button class="btn" onclick="closeMksnModal()">キャンセル</button>'
     + '<button class="btn btn-primary" id="mksnExecBtn" onclick="execMksnImport()" disabled style="opacity:.5">取込実行</button></div>'
-    + '</div>'
-    // ── Tab 2: 月次予算XLS ──
-    + '<div id="mksnPane2" style="display:none">'
-    + '<div style="background:#fff;border:1px solid #fde68a;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:var(--text2);line-height:1.9">'
-    + '<b style="color:#b45309">💰 使い方</b><br>'
-    + 'まかせてネットの<b>月次予算フォーマットXLS</b>をここにドロップ<br>'
-    + '<span style="color:var(--muted)">・人件費予算・粗利益予算・経常利益予算など詳細予算を取り込みます<br>'
-    + '・売上予算は税抜→税込（×1.1）換算されます</span></div>'
-    + '<div id="budgetDropZone" style="border:2px dashed var(--border);border-radius:8px;padding:28px;text-align:center;cursor:pointer;background:#fafafa;transition:all .15s"'
-    + ' onclick="document.getElementById(\'budgetFileInput\').click()"'
-    + ' ondragover="event.preventDefault();this.style.borderColor=\'#f59e0b\';this.style.background=\'#fffbeb\'"'
-    + ' ondragleave="this.style.borderColor=\'var(--border)\';this.style.background=\'#fafafa\'"'
-    + ' ondrop="handleBudgetDrop(event)">'
-    + '<div style="font-size:28px;margin-bottom:4px">💰</div>'
-    + '<div style="font-size:13px;font-weight:700;color:var(--text2)">クリック or ドラッグ＆ドロップ</div>'
-    + '<div style="font-size:11px;color:var(--muted);margin-top:3px">月次予算ファイル（XLS / XLSX / CSV）を選択</div></div>'
-    + '<input type="file" id="budgetFileInput" accept=".xls,.xlsx,.csv" style="display:none" onchange="handleBudgetFile(this.files[0])">'
-    + '<div style="margin-top:10px;display:flex;align-items:center;gap:8px">'
-    + '<span style="font-size:11px;font-weight:700;color:var(--text2)">取込モード:</span>'
-    + '<select id="budgetMode" style="padding:5px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:\'Noto Sans JP\',sans-serif">'
-    + '<option value="budget">📊 当年予算として取込</option>'
-    + '<option value="prevYear">📅 前年実績として取込</option></select></div>'
-    + '<div id="budgetPreview" style="display:none;margin-top:10px">'
-    + '<div id="budgetPreviewTitle" style="font-size:12px;font-weight:700;margin-bottom:6px"></div>'
-    + '<div id="budgetPreviewList" style="border:1px solid var(--border);border-radius:7px;max-height:220px;overflow-y:auto;font-size:11px"></div></div>'
-    + '<div id="budgetError" style="color:#dc2626;font-size:11px;margin-top:4px"></div>'
-    + '<div class="modal-btns" style="margin-top:12px">'
-    + '<button class="btn" onclick="closeMksnModal()">キャンセル</button>'
-    + '<button class="btn btn-primary" id="budgetExecBtn" onclick="execBudgetImport()" disabled style="opacity:.5">予算取込実行</button></div>'
     + '</div>'
     + '</div></div>';
 
@@ -5635,6 +5651,13 @@ function handleBudgetDrop(e) {
   const file = (e.dataTransfer.files || [])[0];
   if (file) handleBudgetFile(file);
 }
+function handleBudgetDrop2(e) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = 'var(--border)';
+  e.currentTarget.style.background = '#fafafa';
+  const file = (e.dataTransfer.files || [])[0];
+  if (file) handleBudgetFile(file);
+}
 
 async function handleBudgetFile(file) {
   const errEl = document.getElementById('budgetError');
@@ -5725,13 +5748,21 @@ function parseBudgetXls(rows) {
     const revenue    = Math.round((sd[4011]||0) * 1.1); // 売上高（税込換算）
     const cogs        = sd[5099] || 0;  // 原価合計
     const grossProfit = sd[5990] || 0;  // 売上総利益
+    const laborStaff  = sd[6011] || 0;  // 社員人件費
+    const laborAP     = sd[6012] || 0;  // AP人件費
+    const laborWelfare= sd[6014] || 0;  // 福利厚生（法定福利費）
+    const helpAdj     = sd[6020] || 0;  // ヘルプ調整
+    const timee       = sd[6050] || 0;  // タイミー
     const laborTotal  = sd[6099] || 0;  // 人件費計
     const opex        = sd[7999] || 0;  // 一般管理費
+    const rent        = sd[8320] || 0;  // 家賃
     const profit      = sd[8990] || 0;  // 経常利益
 
     matched.push({
       entity, storeName,
-      revenue, cogs, grossProfit, laborTotal, opex, profit,
+      revenue, cogs, grossProfit,
+      laborStaff, laborAP, laborWelfare, helpAdj, timee, laborTotal,
+      opex, rent, profit,
       raw: sd
     });
   });
@@ -5773,17 +5804,19 @@ function parseBudgetXls(rows) {
   execBtn.disabled = false;
   execBtn.style.opacity = '1';
 
-  const dz = document.getElementById('budgetDropZone');
-  if (dz) {
-    dz.innerHTML = '<div style="font-size:20px">✅</div><div style="font-size:12px;font-weight:700;color:#b45309">' + budgetMonth + ' / ' + matched.length + '店舗読み込み済み</div>';
-    dz.style.borderColor = '#f59e0b';
-    dz.style.background = '#fffbeb';
-  }
+  ['budgetDropZone','budgetDropZone2'].forEach(function(dzId) {
+    var dz = document.getElementById(dzId);
+    if (dz) {
+      dz.innerHTML = '<div style="font-size:20px">✅</div><div style="font-size:12px;font-weight:700;color:#b45309">' + budgetMonth + ' / ' + matched.length + '店舗読み込み済み</div>';
+      dz.style.borderColor = '#f59e0b';
+      dz.style.background = '#fffbeb';
+    }
+  });
 }
 
 function execBudgetImport() {
   if (!_budgetParsed || !_budgetParsed.data || _budgetParsed.data.length === 0) return;
-  const mode = (document.getElementById('budgetMode')||{}).value || 'budget';
+  const mode = (document.getElementById('budgetMode2')||document.getElementById('budgetMode')||{}).value || 'budget';
   const month = _budgetParsed.month;
 
   if (state.editMode) {
@@ -5809,19 +5842,29 @@ function execBudgetImport() {
       const d = m.entity.data[month];
       if (!d) return;
       d.budgetDetail = {
-        revenue:     m.revenue,
-        cogs:        m.cogs || 0,
-        grossProfit: m.grossProfit,
-        laborTotal:  m.laborTotal,
-        opex:        m.opex,
-        profit:      m.profit
+        revenue:      m.revenue,
+        cogs:         m.cogs || 0,
+        grossProfit:  m.grossProfit,
+        laborStaff:   m.laborStaff || 0,
+        laborAP:      m.laborAP || 0,
+        laborWelfare: m.laborWelfare || 0,
+        helpAdj:      m.helpAdj || 0,
+        timee:        m.timee || 0,
+        laborTotal:   m.laborTotal,
+        opex:         m.opex,
+        rent:         m.rent || 0,
+        profit:       m.profit
       };
       d.budgetRevenue = m.revenue; // 月次予算CSVの値を優先
     }
     count++;
   });
 
-  closeMksnModal();
+  // Close whichever modal is open
+  var mksnMdl = document.getElementById('mksnModal');
+  var csvMdl = document.getElementById('csvModal');
+  if (mksnMdl) closeMksnModal();
+  if (csvMdl) closeCsvModal();
   clearAllCache();
   render();
   autoSave();
