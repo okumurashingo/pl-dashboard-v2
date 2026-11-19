@@ -209,9 +209,9 @@ body { font-family:'Noto Sans JP',sans-serif; background:var(--bg); color:var(--
 .rate-cell { font-family:'DM Mono',monospace; font-size:11px; text-align:right; }
 
 /* ══ PL TABLE ══ */
-.pl-table { width:100%; border-collapse:collapse; font-size:12px; }
-.pl-table th { padding:7px 12px; background:var(--sidebar-bg); color:rgba(255,255,255,.7); font-size:9px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
-.pl-table td { padding:6px 12px; border-bottom:1px solid var(--border); }
+.pl-table { width:100%; border-collapse:collapse; font-size:11px; }
+.pl-table th { padding:5px 6px; background:var(--sidebar-bg); color:rgba(255,255,255,.7); font-size:9px; font-weight:800; letter-spacing:1px; text-transform:uppercase; }
+.pl-table td { padding:4px 6px; border-bottom:1px solid var(--border); }
 .pl-table tr:hover td { background:#fff; }
 .pl-table .pl-sec td { background:var(--bg); color:var(--muted); font-size:9px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; padding:9px 12px 3px; }
 .pl-table .pl-tot td { background:#fff; font-weight:700; border-top:1px solid var(--teal-pale2); color:var(--teal-dark); }
@@ -468,7 +468,7 @@ tr:hover .rate-dim { color:var(--muted); }
   }
 
   /* ── Gauge/budget cards: tighter on mobile ── */
-  .card { overflow:hidden !important; }
+  .card { overflow:hidden; }
 
   /* ── Bottom bar: taller for easier tapping ── */
   .mobile-bottom-bar {
@@ -2331,7 +2331,7 @@ function renderCfTab() {
 
     // 左: CF計算書 ＋ CF入力
     + '<div style="display:flex;flex-direction:column;gap:14px">'
-    + '<div class="card" style="overflow:hidden"><div style="padding:12px 16px 6px"><div class="card-title">CF計算書（' + month + '）</div><div class="card-sub">PLの利益・減価償却を自動取得</div></div>'
+    + '<div class="card" style="overflow-x:auto"><div style="padding:12px 16px 6px"><div class="card-title">CF計算書（' + month + '）</div><div class="card-sub">PLの利益・減価償却を自動取得</div></div>'
     + '<table class="pl-table"><thead><tr><th>項目</th><th style="text-align:right">金額（円）</th></tr></thead><tbody>' + cfTableRows + '</tbody></table></div>'
 
     // CF入力（見切れないよう grid 1列）
@@ -2347,7 +2347,7 @@ function renderCfTab() {
 
     // 右: 借入管理テーブル（フル）
     + '<div style="display:flex;flex-direction:column;gap:14px">'
-    + '<div class="card" style="overflow:hidden">'
+    + '<div class="card" style="overflow-x:auto">'
     + '<div style="padding:10px 14px 8px;display:flex;justify-content:space-between;align-items:center">'
     + '<div><div class="card-title">🏦 借入返済管理</div><div class="card-sub">① 現在残高・年利・月額返済を入力 → 利息・元本充当・残回数が自動計算</div></div>'
     + '<button class="btn btn-sm btn-teal" onclick="addLoan()">＋ 借入追加</button>'
@@ -2852,7 +2852,7 @@ function renderDetail(entity) {
     + memoHtml
     // ── PL表 + 原価内訳 ──
     + '<div class="chart-grid-2 anim anim-d2">'
-    + '<div class="card" style="overflow:hidden">'
+    + '<div class="card" style="overflow-x:auto">'
     + '<table class="pl-table"><thead><tr>'
     + '<th>勘定科目</th><th style="text-align:right">実績（円）</th><th style="text-align:right">予算（円）</th><th style="text-align:right">差異</th><th style="text-align:right">比率</th>'
     + '</tr></thead><tbody>' + plRows + '</tbody></table></div>'
